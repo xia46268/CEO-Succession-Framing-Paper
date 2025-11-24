@@ -104,3 +104,110 @@ This repo is deliberately split into:
 ├── environment.yml / requirements.txt
 ├── LICENSE
 └── README.md
+
+**Note:**  
+All files in `data_frozen/` are analysis-ready and small enough to share.  
+They do **not** contain any raw WRDS data (CRSP/Compustat/CIQ tables).  
+See **Data Sources & Access** below.
+
+---
+
+## 4. Data Sources & Access
+
+### 4.1 Public data (shipped in `data_frozen/`)
+
+These files are derived from public sources and can be safely shared:
+
+- **item502_filings_clean.csv**  
+  - 306 SEC 8-K Item 5.02 filings that mention CEO succession  
+  - cleaned text of the Item 5.02 block + metadata (company, date, URL)
+
+- **item502_core_bootstrap_scores.csv**  
+  - CORE probabilities and binary tags for each 8-K filing  
+  - columns: `Capacity_score`, `Opportunity_score`, `Relevant_Exchanges_score`, plus `_pred`
+
+- **core_seed_labels.csv**  
+  - seed dictionaries + weak labels used to train the CORE classifier
+
+- **core_strategy_cards.json**  
+  - sentence-level “strategy cards” with the top C/O/RE snippets per filing  
+  - used for qualitative inspection and examples in the paper
+
+### 4.2 Restricted data (NOT included in raw form)
+
+The following rely on licensed WRDS / CIQ data and are therefore only stored as  
+lightweight, derived outputs:
+
+- **event_window_CAR.csv**  
+  - event-window abnormal returns (`CAR_1d`, `CAR_3d`) around each 8-K filing  
+  - computed from CRSP but only the CARs themselves are shared
+
+- **8k_events_with_funda.csv**  
+  - per-event firm characteristics (e.g., log assets, log market cap, ROA, firm age, SIC2)  
+  - derived from Compustat; **no raw Compustat rows** are exposed
+
+- **earnings_calls.csv / earnings_call_core.csv / ec_vs_8k_firm_core.csv**  
+  - aggregated earnings call transcripts and their CORE scores  
+  - sourced from S&P Capital IQ Transcripts (WRDS), but **only processed text and scores** are shared
+
+If you have WRDS access, you can rebuild these from the archive notebook / scripts.  
+Otherwise, you can still run the paper notebook using the frozen CSVs in `data_frozen/`.
+
+---
+
+## 5. Method in One Slide: 5-Layer Pipeline
+
+The full pipeline is organized into **five layers** (implemented in `src/` and the archive notebook):
+
+1. **Layer 1 – fill+clean (SEC 8-K corpus)**  
+   - Query SEC’s open EDGAR endpoints (`efts.sec.gov`, `data.sec.gov`)  
+   - Filter for 8-K Item 5.02 filings mentioning CEOs  
+   - Parse HTML, isolate Item 5.02 text, and clean boilerplate  
+   - **Output:** `item502_filings_clean.csv`
+
+2. **Layer 2 – Bootstrap multi-label BERT (CORE classifier)**  
+   - Build weak lexicons for Capacity/Opportunity/RE (SEC-style roots + phrases + proximity rules)  
+   - Generate noisy labels for each filing (`core_seed_labels.csv`)  
+   - Fine-tune a multi-label **BERT (bert-base-uncased)** on these weak labels  
+   - Use **bootstrap** over random seeds to stabilize predictions (macro-F1 ≈ 0.81 ± 0.04)  
+   - **Output:** `item502_core_bootstrap_scores.csv`
+
+3. **Layer 3 – CORE strategies (RQ1)**  
+   - Use CORE scores to explore framing patterns in 8-K filings:  
+     - combo frequencies (C / C+RE / C+O / C+O+RE)  
+     - K-means clustering + PCA visualization  
+     - CORE simplex (ternary) plots  
+     - yearly trends with bootstrap confidence intervals  
+   - **Output:** all paper figures + `core_rq1_summary.json`
+
+4. **Layer 4 – CORE → Market Reaction (RQ2)**  
+   - Map 8-K events to CRSP permno (via CIK → gvkey → permno link tables)  
+   - Compute event-window CARs (e.g., `CAR[-1,+1]`, `CAR[-3,+3]`) using a market-model estimation window  
+   - Run OLS with HC3 and variants (industry FE, PCA-based framing indices, balance metrics)  
+   - **Main result:** no robust evidence that CORE framing predicts short-window CARs
+
+5. **Layer 5 – Earnings Calls with CORE (Cross-channel)**  
+   - Pull earnings call transcripts from Capital IQ Transcripts (WRDS)  
+   - Filter management speech; apply the same CORE classifier  
+   - Compare 8-K vs call framing within firms/events:  
+     - **ΔCORE (call – 8-K)**  
+     - semantic similarity via sentence-BERT  
+     - firm-level CORE profiles across channels  
+   - Used to interpret whether 8-K framing is event-specific identity work vs general linguistic style
+
+The **paper notebook** (`notebooks/paper_notebook.ipynb`) uses **only Layers 2–5 outputs**  
+and does **not** re-run scraping or model training.
+
+---
+
+## 6. Reproducing the Paper Results
+
+### 6.1 Environment
+
+You can use either **conda** or **pip**. A minimal setup:
+
+```bash
+# conda example
+conda create -n succession-core python=3.10
+conda activate succession-core
+pip install -r requirements.txt
