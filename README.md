@@ -4,7 +4,6 @@ This repository contains the reproducible analysis accompanying my master’s th
 
 > **Title:** Succession Framing as Identity Shock: Mapping Founder CEO Transitions onto the CORE Performance System and Stakeholder Responses  
 > **Author:** Rong Xia (Columbia University, QMSS)  
-> **Advisor(s):** TODO: add names  
 > **Program:** MA in Quantitative Methods in the Social Sciences (QMSS), Fall 2025  
 
 The goal of this repo is to provide a clean, self-contained analysis layer for the paper.  
