@@ -22,11 +22,11 @@ This project treats CEO succession as an **organizational identity shock** and a
    How do firms frame CEO succession in SEC 8-K Item 5.02 filings along the CORE dimensions –  
    **Capacity (C)**, **Opportunity (O)**, and **Relevant Exchanges (RE)**?
 
-2. **RQ2 (Explanatory):**  
+2. **RQ3 (Explanatory):**  
    Are these framing strategies associated with stakeholder responses such as  
    **short-window stock market reactions** and **longer-term performance / innovation**?
 
-3. **RQ2-Extension (Cross-channel):**  
+3. **RQ2-Extension (Cross-channel Descriptive):**  
    Do firms **maintain or shift** their initial framing when they move from  
    formal 8-K announcements to **earnings calls**?
 
@@ -180,13 +180,13 @@ The full pipeline is organized into **five layers** (implemented in `src/` and t
      - yearly trends with bootstrap confidence intervals  
    - **Output:** all paper figures + `core_rq1_summary.json`
 
-4. **Layer 4 – CORE → Market Reaction (RQ2)**  
+4. **Layer 4 – CORE → Market Reaction (RQ3)**  
    - Map 8-K events to CRSP permno (via CIK → gvkey → permno link tables)  
    - Compute event-window CARs (e.g., `CAR[-1,+1]`, `CAR[-3,+3]`) using a market-model estimation window  
    - Run OLS with HC3 and variants (industry FE, PCA-based framing indices, balance metrics)  
    - **Main result:** no robust evidence that CORE framing predicts short-window CARs
 
-5. **Layer 5 – Earnings Calls with CORE (Cross-channel)**  
+5. **Layer 5 – Earnings Calls with CORE (Cross-channel, RQ2)**  
    - Pull earnings call transcripts from Capital IQ Transcripts (WRDS)  
    - Filter management speech; apply the same CORE classifier  
    - Compare 8-K vs call framing within firms/events:  
@@ -204,9 +204,92 @@ and does **not** re-run scraping or model training.
 
 ### 6.1 Environment
 
-You can use either **conda** or **pip**. A minimal setup:
+You can use **pip**. A minimal setup:
 
 ```bash
 pip install numpy pandas scikit-learn matplotlib seaborn torch transformers sentencepiece sentence-transformers statsmodels
 ```
+The paper notebook assumes the repo root as current working directory  
+and uses `data_frozen/` and `outputs_frozen/` as default paths.
 
+---
+
+## 6.2 RQ1 – Framing Patterns in 8-K Item 5.02
+
+1. Open `notebooks/paper_notebook.ipynb`
+2. Run the **RQ1** section:
+   - Loads `data_frozen/item502_core_bootstrap_scores.csv`
+   - Reproduces:
+     - Distribution plots of C/O/RE scores  
+     - Combo bar charts (C+O+RE, C+RE, C only, etc.)  
+     - PCA + cluster figures (e.g., Continuity vs. Relational Legitimacy frames)  
+     - CORE simplex plots  
+     - Yearly trends with bootstrap CIs  
+3. Figures are saved under `outputs_frozen/figs/`,  
+   and summary tables under `outputs_frozen/tables/`.
+
+---
+
+## 6.3 RQ3 – CORE Framing and Market Reaction
+
+1. Ensure the following frozen files are present:
+   - `data_frozen/item502_core_bootstrap_scores.csv`
+   - `data_frozen/event_window_CAR.csv`
+   - `data_frozen/8k_events_with_funda.csv` (optional controls)
+
+2. Run the **RQ3** section of `paper_notebook.ipynb`:
+   - Merges CORE scores with CARs and controls  
+   - Runs the baseline OLS (HC3 robust SE, year FE) and robustness specifications  
+   - Writes regression tables to `outputs_frozen/tables/`  
+   - **Main result:** no statistically significant association between C/O/RE and `CAR[-1,+1]`.
+
+---
+
+## 6.4 Earnings Call Appendix (Standalone EC Analysis)
+
+1. Ensure the following files exist:
+   - `data_frozen/earnings_calls.csv`
+   - `data_frozen/earnings_call_core.csv`
+   - `data_frozen/ec_vs_8k_firm_core.csv`
+   - `data_frozen/8k_call_aligned_core.csv`
+
+2. Run the **Appendix B** section of the notebook:
+   - Describes CORE distributions in calls  
+   - Plots correlations and yearly trends  
+   - Characterizes semantic clusters in call embeddings (PCA + KMeans)  
+   - Compares firm-level CORE between 8-K and calls  
+   - Shows ΔCORE and cosine similarity for matched 8-K–call pairs.
+
+---
+
+## 7. Citation & Acknowledgements
+
+If you use any part of this repo, please cite:
+
+- **The CORE model paper:**  
+  Marshall, J. D., Aguinis, H., & Beltran, J. R. (2024).  
+  *Theories of performance: A review and integration.*  
+  *Academy of Management Annals, 18*(2), 600–625.
+
+- **This thesis (working citation):**  
+  Xia, R. (2025). *Succession Framing as Identity Shock:  
+  Mapping Founder CEO Transitions onto the CORE Performance System and Stakeholder Responses.*  
+  Master’s thesis, Columbia University, Quantitative Methods in the Social Sciences.
+
+**Acknowledgements:**
+- Columbia University QMSS and MGMT B9506  
+  (Individual and Collective Behavior in Organizations) for theoretical guidance  
+- WRDS, CRSP, Compustat, and S&P Capital IQ Transcripts for data access (not redistributed here)
+
+---
+
+## 8. License
+
+Code in this repository is released under the **MIT License** (see `LICENSE`).
+
+- You are free to reuse and modify the code with attribution.  
+- Please obtain your own WRDS / CIQ credentials if you wish to rebuild raw data.  
+- **Do not redistribute proprietary WRDS data**  
+  (CRSP, Compustat, Capital IQ) extracted with your credentials.
+
+---
