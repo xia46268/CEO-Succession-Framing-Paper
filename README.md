@@ -207,7 +207,6 @@ and does **not** re-run scraping or model training.
 You can use either **conda** or **pip**. A minimal setup:
 
 ```bash
-# conda example
-conda create -n succession-core python=3.10
-conda activate succession-core
-pip install -r requirements.txt
+pip install numpy pandas scikit-learn matplotlib seaborn torch transformers sentencepiece sentence-transformers statsmodels
+```
+
