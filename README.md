@@ -104,7 +104,7 @@ This repo is deliberately split into:
 ├── environment.yml / requirements.txt
 ├── LICENSE
 └── README.md
-
+```
 **Note:**  
 All files in `data_frozen/` are analysis-ready and small enough to share.  
 They do **not** contain any raw WRDS data (CRSP/Compustat/CIQ tables).  
